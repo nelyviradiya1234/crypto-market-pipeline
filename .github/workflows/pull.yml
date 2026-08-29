@@ -34,3 +34,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_data.py
+
+      - name: Keep-Alive Ping Streamlit App
+        run: |
+          curl -s -o /dev/null https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app || true
