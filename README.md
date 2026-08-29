@@ -1,6 +1,13 @@
 # Market Monitor — Cryptocurrency Market Data Pipeline & Intelligence Dashboard
 
+[![Live Demo](https://img.shields.io/badge/Streamlit-Live%20Dashboard-FF4B4B?style=for-the-badge&logo=streamlit)](https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app/)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated_30m_Cron-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/nelyviradiya1234/crypto-market-pipeline/actions)
+
 An enterprise-grade, production-style cryptocurrency market data pipeline and financial intelligence dashboard built with Python, CoinGecko API, PostgreSQL (Neon), GitHub Actions, and Streamlit.
+
+🔗 **Live Production App**: **[https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app/](https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app/)**
 
 ---
 
@@ -55,16 +62,17 @@ flowchart TD
 ## ✨ Key Features & Capabilities
 
 - **Dual Analysis Modes**:
-  - **Absolute Price (USD)**: Shows actual USD prices ($78,800 BTC vs $0.21 ADA).
+  - **Absolute Price (USD)**: Shows actual USD prices ($77,920 BTC vs $0.20 ADA).
   - **Indexed Relative Performance (Base = 100)**: Normalizes initial prices to 100, allowing direct percentage return comparison across assets with radically different price scales.
 - **Centralized Coin Metadata**: Professional display names (`BTC — Bitcoin`, `ETH — Ethereum`, `SOL — Solana`, `BNB — Binance Coin`, `XRP — Ripple`, `ADA — Cardano`, `DOGE — Dogecoin`, `DOT — Polkadot`).
 - **Automated 30-Minute Ingestion**: Periodically pulls market metrics for top cryptocurrencies via GitHub Actions.
+- **24/7 Keep-Alive Automation**: Includes automated HTTP keep-alive ping to ensure Streamlit Cloud never hibernates or stops.
 - **Resilient API Client**: Handles HTTP status codes (200, 429, 400-404, 500-504) and transient errors using **exponential backoff retries** (5s, 15s, 45s).
 - **Strict Data Validation**: Validates response structure, presence of critical fields, numeric price bounds, and complete batch arrival before database insertion.
 - **Transactional Atomicity**: All snapshots within an ingestion run are written in a single database transaction (`BEGIN...COMMIT`), preventing partial batch corruption.
 - **Operational Observability**: Tracks execution metrics, total runs, success rate %, and detailed error messages in `pipeline_log`.
-- **Data Freshness Monitoring**: Real-time freshness badge on the dashboard (`● LIVE · 2M AGO`) with automated delay warnings if data is > 45 minutes old.
-- **Clean Restyled Visualizations**: Custom Plotly line charts, horizontal zero-baseline 24h mover charts, and market cap & trading volume bar graphs with clean tooltips and hidden modebars.
+- **Data Freshness Monitoring**: Real-time freshness badge on the dashboard (`● LIVE · <1M AGO`) with automated delay warnings if data is > 45 minutes old.
+- **Editorial Financial UI**: Customized light-mode styling system with high-contrast BaseWeb selectboxes, clean multiselect chips, and hidden modebars.
 
 ---
 
