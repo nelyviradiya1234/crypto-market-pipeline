@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 
+from src.config import get_display_name
 from src.database.connection import get_connection
 from src.database.queries import (
     get_latest_prices,
@@ -33,7 +34,7 @@ from src.ui.charts import (
 
 # Page Setup
 st.set_page_config(
-    page_title="Crypto / Market Intelligence",
+    page_title="Market Monitor — Crypto Intelligence",
     page_icon="◩",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -41,6 +42,8 @@ st.set_page_config(
 
 # Apply Editorial Financial Styling System
 apply_editorial_theme()
+
+PLOTLY_CONFIG = {"displayModeBar": False, "responsive": True}
 
 
 def load_data():
@@ -109,17 +112,27 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([3, 2, 1])
+        ctrl_col1, ctrl_col2, ctrl_col3, ctrl_col4 = st.columns([3, 2, 2, 1])
 
         with ctrl_col1:
             selected_coins = st.multiselect(
                 "Filter Assets",
                 options=coins_list,
                 default=coins_list[:3] if len(coins_list) >= 3 else coins_list,
+                format_func=get_display_name,
                 label_visibility="collapsed"
             )
 
         with ctrl_col2:
+            chart_mode_choice = st.radio(
+                "Analysis Mode",
+                options=["Price (USD)", "Indexed (Base=100)"],
+                index=1,
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+
+        with ctrl_col3:
             time_option = st.radio(
                 "Time Window",
                 options=["24H", "3D", "7D", "30D", "ALL"],
@@ -128,20 +141,23 @@ def main():
                 label_visibility="collapsed"
             )
 
-        with ctrl_col3:
-            if st.button("↻ Refresh Data", use_container_width=True):
+        with ctrl_col4:
+            if st.button("↻ Refresh", use_container_width=True):
                 st.rerun()
 
         hours_map = {"24H": 24, "3D": 72, "7D": 168, "30D": 720, "ALL": None}
         selected_hours = hours_map[time_option]
+        calc_mode = "indexed" if "Indexed" in chart_mode_choice else "price"
 
         if selected_coins:
             history_df = get_price_history(conn, selected_coins=selected_coins, hours=selected_hours)
             if not history_df.empty:
-                line_fig = create_editorial_line_chart(history_df)
-                st.plotly_chart(line_fig, use_container_width=True)
+                line_fig = create_editorial_line_chart(history_df, mode=calc_mode)
+                st.plotly_chart(line_fig, use_container_width=True, config=PLOTLY_CONFIG)
             else:
                 st.warning("No price history records found for selected query.")
+        else:
+            st.info("Select at least one cryptocurrency asset to display history.")
 
         st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
 
@@ -164,19 +180,16 @@ def main():
         m_col1, m_col2 = st.columns(2)
 
         with m_col1:
-            st.markdown("<div class='section-label'>24-Hour Price Change</div>", unsafe_allow_html=True)
             bar_fig = create_performance_bar_chart(latest_df)
-            st.plotly_chart(bar_fig, use_container_width=True)
+            st.plotly_chart(bar_fig, use_container_width=True, config=PLOTLY_CONFIG)
 
         with m_col2:
-            st.markdown("<div class='section-label'>Market Capitalization (USD)</div>", unsafe_allow_html=True)
             mcap_fig = create_market_cap_bar_chart(latest_df)
-            st.plotly_chart(mcap_fig, use_container_width=True)
+            st.plotly_chart(mcap_fig, use_container_width=True, config=PLOTLY_CONFIG)
 
         st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-label'>24-Hour Trading Volume (USD)</div>", unsafe_allow_html=True)
         vol_fig = create_volume_bar_chart(latest_df)
-        st.plotly_chart(vol_fig, use_container_width=True)
+        st.plotly_chart(vol_fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     # ------------------------------------------------------------------
     # TAB 3: HISTORICAL PERFORMANCE
@@ -191,18 +204,26 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        p_col1, p_col2 = st.columns([3, 1])
+        p_col1, p_col2, p_col3 = st.columns([3, 2, 2])
         with p_col1:
             all_selected = st.multiselect(
                 "Select Cryptocurrencies to Compare",
                 options=coins_list,
-                default=coins_list
+                default=coins_list,
+                format_func=get_display_name
             )
         with p_col2:
+            hist_mode_choice = st.radio(
+                "Historical Mode",
+                options=["Price (USD)", "Indexed (Base=100)"],
+                index=1,
+                horizontal=True
+            )
+        with p_col3:
             perf_time_option = st.selectbox(
                 "Time Window",
                 options=["Last 24 Hours", "Last 3 Days", "Last 7 Days", "Last 30 Days", "All Data"],
-                index=3
+                index=2
             )
 
         perf_hours_map = {
@@ -212,18 +233,23 @@ def main():
             "Last 30 Days": 720,
             "All Data": None
         }
+        hist_calc_mode = "indexed" if "Indexed" in hist_mode_choice else "price"
 
         if all_selected:
             full_history_df = get_price_history(conn, selected_coins=all_selected, hours=perf_hours_map[perf_time_option])
             if not full_history_df.empty:
-                full_fig = create_editorial_line_chart(full_history_df)
-                st.plotly_chart(full_fig, use_container_width=True)
+                full_fig = create_editorial_line_chart(full_history_df, mode=hist_calc_mode)
+                st.plotly_chart(full_fig, use_container_width=True, config=PLOTLY_CONFIG)
+            else:
+                st.warning("No historical price records found for selected criteria.")
+        else:
+            st.info("Select at least one cryptocurrency to view comparison.")
 
     # ------------------------------------------------------------------
     # TAB 4: PIPELINE HEALTH
     # ------------------------------------------------------------------
     with nav_tab4:
-        logs_df = get_pipeline_logs(conn, limit=15)
+        logs_df = get_pipeline_logs(conn, limit=25)
         render_pipeline_timeline(stats, logs_df)
 
     # 3. Editorial Footer

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 
-from src.config import STALE_THRESHOLD_MINUTES
+from src.config import STALE_THRESHOLD_MINUTES, get_coin_symbol, get_coin_name, get_display_name
 
 
 def format_currency(val: float) -> str:
@@ -24,11 +24,15 @@ def format_currency(val: float) -> str:
 
 
 def format_pct(val: float) -> str:
-    """Format percentage values with sign."""
+    """Format percentage values with sign and arrow symbol."""
     if val is None or pd.isna(val):
         return "N/A"
-    prefix = "+" if val > 0 else ""
-    return f"{prefix}{val:.2f}%"
+    if val > 0:
+        return f"▲ +{val:.2f}%"
+    elif val < 0:
+        return f"▼ {val:.2f}%"
+    else:
+        return "0.00%"
 
 
 def render_header(last_pull_time):
@@ -46,22 +50,22 @@ def render_header(last_pull_time):
 
         if is_stale:
             pill_class = "stale"
-            status_text = f"● DATA STALE · UPDATED {diff_minutes}M AGO"
+            status_text = f"● DATA DELAYED · {diff_minutes}M AGO"
         else:
             pill_class = "live"
-            status_text = f"● LIVE DATA · {diff_minutes}M AGO"
+            status_text = f"● LIVE · {diff_minutes}M AGO"
     else:
         pill_class = "error"
-        status_text = "● NO SNAPSHOTS"
+        status_text = "● PIPELINE ISSUE"
 
     st.markdown(f"""
     <div class="brand-header">
         <div>
             <div class="brand-title">
-                CRYPTO <span style="color: #94A3B8; font-weight: 300;">/</span> MARKET INTELLIGENCE
+                MARKET MONITOR
                 <span class="brand-title-badge">PRO</span>
             </div>
-            <div class="brand-subtitle">Automated market monitoring and historical performance analytics</div>
+            <div class="brand-subtitle">Crypto market intelligence & pipeline health</div>
         </div>
         <div>
             <span class="freshness-pill {pill_class}">
@@ -92,8 +96,8 @@ def render_market_snapshot(latest_df: pd.DataFrame):
 
     for idx, coin in enumerate(coins):
         col_idx = idx % 4
-        symbol = coin["symbol"].upper()
-        name = coin["coin_id"].capitalize()
+        symbol = get_coin_symbol(coin["coin_id"])
+        name = get_coin_name(coin["coin_id"])
         price = coin["price_usd"]
         change = coin["change_24h_pct"]
 
@@ -141,46 +145,46 @@ def render_market_pulse(latest_df: pd.DataFrame):
 
     with c1:
         if top_gainer is not None:
-            g_name = top_gainer["coin_id"].capitalize()
-            g_sym = top_gainer["symbol"].upper()
+            g_name = get_coin_name(top_gainer["coin_id"])
+            g_sym = get_coin_symbol(top_gainer["coin_id"])
             g_pct = format_pct(top_gainer["change_24h_pct"])
             st.markdown(f"""
             <div class="pulse-card">
-                <div class="pulse-card-label">🔥 Top Gainer (24h)</div>
-                <div class="pulse-card-val">{g_sym} <span style="font-size: 0.9rem; font-weight: 500; color: #64748B;">{g_name}</span></div>
+                <div class="pulse-card-label">Top Gainer (24h)</div>
+                <div class="pulse-card-val">{g_sym} <span style="font-size: 0.85rem; font-weight: 500; color: #64748B;">{g_name}</span></div>
                 <div class="pulse-card-sub" style="color: #16A34A;">{g_pct}</div>
             </div>
             """, unsafe_allow_html=True)
 
     with c2:
         if top_loser is not None:
-            l_name = top_loser["coin_id"].capitalize()
-            l_sym = top_loser["symbol"].upper()
+            l_name = get_coin_name(top_loser["coin_id"])
+            l_sym = get_coin_symbol(top_loser["coin_id"])
             l_pct = format_pct(top_loser["change_24h_pct"])
             st.markdown(f"""
             <div class="pulse-card">
-                <div class="pulse-card-label">📉 Top Loser (24h)</div>
-                <div class="pulse-card-val">{l_sym} <span style="font-size: 0.9rem; font-weight: 500; color: #64748B;">{l_name}</span></div>
+                <div class="pulse-card-label">Top Loser (24h)</div>
+                <div class="pulse-card-val">{l_sym} <span style="font-size: 0.85rem; font-weight: 500; color: #64748B;">{l_name}</span></div>
                 <div class="pulse-card-sub" style="color: #DC2626;">{l_pct}</div>
             </div>
             """, unsafe_allow_html=True)
 
     with c3:
         if top_volume is not None:
-            v_name = top_volume["coin_id"].capitalize()
-            v_sym = top_volume["symbol"].upper()
+            v_name = get_coin_name(top_volume["coin_id"])
+            v_sym = get_coin_symbol(top_volume["coin_id"])
             v_val = format_currency(top_volume["volume_24h_usd"])
             st.markdown(f"""
             <div class="pulse-card">
-                <div class="pulse-card-label">📊 Highest Volume (24h)</div>
-                <div class="pulse-card-val">{v_sym} <span style="font-size: 0.9rem; font-weight: 500; color: #64748B;">{v_name}</span></div>
+                <div class="pulse-card-label">Highest Volume (24h)</div>
+                <div class="pulse-card-val">{v_sym} <span style="font-size: 0.85rem; font-weight: 500; color: #64748B;">{v_name}</span></div>
                 <div class="pulse-card-sub" style="color: #0F172A;">{v_val}</div>
             </div>
             """, unsafe_allow_html=True)
 
 
 def render_pipeline_timeline(stats: dict, logs_df: pd.DataFrame):
-    """Render Pipeline Health summary metrics and compact operational log timeline."""
+    """Render Pipeline Health summary metrics and clean operational log table."""
     st.markdown("""
     <div class="section-title-bar">
         <div>
@@ -192,42 +196,29 @@ def render_pipeline_timeline(stats: dict, logs_df: pd.DataFrame):
 
     s1, s2, s3, s4 = st.columns(4)
     with s1:
-        st.metric("Total Ingestion Runs", stats.get("total_runs", 0))
+        st.metric("Total Executions", stats.get("total_runs", 0))
     with s2:
-        st.metric("Successful Executions", stats.get("successful_runs", 0))
+        st.metric("Successful Runs", stats.get("successful_runs", 0))
     with s3:
         st.metric("Failed Runs", stats.get("failed_runs", 0))
     with s4:
         st.metric("Success Rate", f"{stats.get('success_rate_pct', 0.0)}%")
 
-    st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
     if not logs_df.empty:
-        st.markdown("<div style='font-size: 0.8rem; font-weight: 700; color: #64748B; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem;'>Recent Operational Activity</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 0.75rem; font-weight: 700; color: #64748B; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.5rem;'>Execution History</div>", unsafe_allow_html=True)
 
-        recent_entries = logs_df.head(6).to_dict("records")
-        for log in recent_entries:
-            run_time = pd.to_datetime(log["run_at"]).strftime("%H:%M UTC (%Y-%m-%d)")
-            status = log["status"]
-            rows = log["rows_written"]
-            error = log["error_message"] or "Clean execution"
+        display_logs = logs_df.copy()
+        display_logs["Time (UTC)"] = pd.to_datetime(display_logs["run_at"]).dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+        display_logs["Status"] = display_logs["status"].str.upper()
+        display_logs["Rows Written"] = display_logs["rows_written"]
+        display_logs["Description"] = display_logs["error_message"].fillna("—")
 
-            st.markdown(f"""
-            <div class="pipeline-status-row">
-                <div>
-                    <span class="pipeline-dot {status}"></span>
-                    <strong style="color: #0F172A; text-transform: uppercase;">{status}</strong>
-                    <span style="color: #64748B; margin-left: 0.75rem;">{run_time}</span>
-                </div>
-                <div>
-                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #F1F5F9; padding: 0.15rem 0.4rem; border-radius: 4px; color: #334155;">{rows} rows</span>
-                    <span style="color: #94A3B8; font-size: 0.75rem; margin-left: 0.5rem;">{error[:40]}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Select clean user-facing columns (exclude internal ID)
+        clean_df = display_logs[["Time (UTC)", "Status", "Rows Written", "Description"]]
 
-        with st.expander("View full pipeline execution history table →"):
-            st.dataframe(logs_df, use_container_width=True, hide_index=True)
+        st.dataframe(clean_df, use_container_width=True, hide_index=True)
 
 
 def render_footer():

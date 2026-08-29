@@ -108,7 +108,7 @@ def get_price_history(
         params.append(selected_coins)
 
     if hours is not None:
-        conditions.append("pulled_at >= NOW() - INTERVAL '%s hours'")
+        conditions.append("pulled_at >= NOW() - (INTERVAL '1 hour' * %s)")
         params.append(hours)
 
     where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
@@ -117,7 +117,7 @@ def get_price_history(
         SELECT coin_id, symbol, price_usd, market_cap_usd, volume_24h_usd, change_24h_pct, pulled_at, data_source
         FROM price_snapshots
         {where_clause}
-        ORDER BY pulled_at ASC;
+        ORDER BY coin_id, pulled_at ASC;
     """
     return pd.read_sql(query, conn, params=params if params else None)
 

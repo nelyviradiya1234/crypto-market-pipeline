@@ -306,6 +306,135 @@ EDITORIAL_CSS = """
         background: #FFFFFF;
     }
 
+    /* Clean BaseWeb Selectbox & Multiselect Container */
+    div[data-baseweb="select"],
+    [data-testid="stSelectbox"] div[data-baseweb="select"],
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] {
+        background-color: #FFFFFF !important;
+        border-radius: 6px !important;
+    }
+
+    div[data-baseweb="select"] > div,
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        color: #0F172A !important;
+        min-height: 38px !important;
+    }
+
+    /* Selectbox non-tag text high contrast */
+    [data-testid="stSelectbox"] div[data-baseweb="select"] span,
+    [data-testid="stSelectbox"] div[data-baseweb="select"] div,
+    div[data-baseweb="select"] > div span,
+    div[data-baseweb="select"] > div div {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
+    }
+
+    div[data-baseweb="select"] svg,
+    [data-testid="stSelectbox"] svg {
+        fill: #0F172A !important;
+        color: #0F172A !important;
+    }
+
+    div[data-baseweb="select"] > div:hover {
+        border-color: #2563EB !important;
+    }
+
+    /* Multiselect Tags - Crisp Royal Blue with Pure White Text */
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] div[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] [data-baseweb="tag"],
+    [data-baseweb="select"] [data-baseweb="tag"],
+    span[data-baseweb="tag"],
+    div[data-baseweb="tag"],
+    [data-baseweb="tag"] {
+        background-color: #2563EB !important;
+        background: #2563EB !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 2px 8px !important;
+        margin: 2px !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stMultiSelect"] [data-baseweb="tag"] *,
+    [data-testid="stMultiSelect"] [data-baseweb="tag"] span,
+    [data-testid="stMultiSelect"] [data-baseweb="tag"] div,
+    [data-baseweb="select"] [data-baseweb="tag"] *,
+    [data-baseweb="tag"] *,
+    [data-baseweb="tag"] span,
+    [data-baseweb="tag"] div {
+        background-color: transparent !important;
+        background: transparent !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        font-weight: 600 !important;
+        font-size: 0.825rem !important;
+        opacity: 1 !important;
+    }
+
+    /* Tag Close (X) Icon - Crisp White */
+    [data-testid="stMultiSelect"] [data-baseweb="tag"] svg,
+    [data-baseweb="tag"] svg,
+    [data-baseweb="tag"] [role="button"],
+    [data-baseweb="tag"] [data-role="remove"] {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-testid="stMultiSelect"] [data-baseweb="tag"] svg:hover,
+    [data-baseweb="tag"] [data-role="remove"]:hover {
+        fill: #FEE2E2 !important;
+        color: #FEE2E2 !important;
+    }
+
+    /* Dropdown Menu Popover Container (Fixes Giant Dark Panel Bug) */
+    div[data-baseweb="popover"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05) !important;
+        z-index: 999999 !important;
+    }
+
+    div[data-baseweb="popover"] > div {
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+    }
+
+    div[data-baseweb="menu"], ul[role="listbox"], div[role="listbox"] {
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        max-height: 260px !important;
+        overflow-y: auto !important;
+        padding: 0.35rem 0 !important;
+    }
+
+    /* Option Items inside Dropdown */
+    li[role="option"], div[role="option"], [data-baseweb="option"] {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        padding: 0.5rem 0.85rem !important;
+        transition: background-color 0.1s ease !important;
+    }
+
+    li[role="option"]:hover, div[role="option"]:hover,
+    li[role="option"][aria-selected="true"], div[role="option"][aria-selected="true"] {
+        background-color: #EFF6FF !important;
+        color: #2563EB !important;
+    }
+
+    /* Fix Streamlit Widget Container Spacing */
+    div[data-testid="stSelectbox"], div[data-testid="stMultiSelect"], div[data-testid="stRadio"] {
+        margin-bottom: 0.5rem !important;
+    }
+
     /* Footer Styling */
     .editorial-footer {
         border-top: 1px solid #E2E8F0;
