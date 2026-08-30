@@ -4,11 +4,12 @@ IMPORTANT ARCHITECTURAL RULE:
 This presentation layer reads exclusively from PostgreSQL. It NEVER calls CoinGecko directly.
 """
 
+import time
 from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 
-from src.config import get_display_name
+from src.config import get_display_name, COIN_IDS, MAX_RETRIES, RETRY_DELAYS
 from src.database.connection import get_connection
 from src.database.queries import (
     get_latest_prices,
@@ -16,6 +17,8 @@ from src.database.queries import (
     get_pipeline_logs,
     get_pipeline_statistics,
     get_last_successful_pull,
+    insert_snapshots,
+    log_pipeline_run,
 )
 from src.ui.styles import apply_editorial_theme
 from src.ui.components import (
@@ -31,6 +34,9 @@ from src.ui.charts import (
     create_market_cap_bar_chart,
     create_volume_bar_chart,
 )
+from src.api.coingecko import fetch_market_data, RateLimitError, ServerError, ClientError, APIError
+from src.pipeline.validation import validate_response, ValidationError
+from src.pipeline.transform import transform_records
 
 # Page Setup
 st.set_page_config(
@@ -55,6 +61,77 @@ def load_data():
         return None, str(e)
 
 
+def refresh_data_from_ui():
+    """Run the data ingestion pipeline safely from the Streamlit UI.
+
+    Unlike pull_data.run_pipeline(), this never calls sys.exit() and
+    returns a (success: bool, message: str) tuple for UI feedback.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+    except Exception as err:
+        return False, f"Database connection failed: {err}"
+
+    # Fetch from CoinGecko with retry
+    raw_data = None
+    last_exception = None
+    status_code_type = "api_error"
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            raw_data = fetch_market_data(COIN_IDS)
+            break
+        except RateLimitError as e:
+            status_code_type = "rate_limited"
+            last_exception = e
+        except ClientError as e:
+            status_code_type = "api_error"
+            last_exception = e
+            break
+        except (ServerError, APIError) as e:
+            status_code_type = "api_error"
+            last_exception = e
+
+        if attempt < MAX_RETRIES:
+            time.sleep(RETRY_DELAYS[attempt - 1])
+
+    if raw_data is None:
+        err_detail = str(last_exception) if last_exception else "Failed to fetch data"
+        log_pipeline_run(conn, status=status_code_type, rows_written=0, error_message=err_detail)
+        conn.close()
+        return False, f"API fetch failed: {err_detail}"
+
+    # Validate
+    try:
+        validated_data = validate_response(raw_data, expected_coin_ids=COIN_IDS)
+    except ValidationError as val_err:
+        log_pipeline_run(conn, status="validation_error", rows_written=0, error_message=str(val_err))
+        conn.close()
+        return False, f"Validation error: {val_err}"
+
+    # Transform
+    try:
+        transformed_records = transform_records(validated_data, data_source="coingecko")
+    except Exception as t_err:
+        log_pipeline_run(conn, status="validation_error", rows_written=0, error_message=str(t_err))
+        conn.close()
+        return False, f"Transform error: {t_err}"
+
+    # Insert into DB
+    try:
+        rows_written = insert_snapshots(conn, transformed_records)
+        conn.commit()
+        log_pipeline_run(conn, status="success", rows_written=rows_written, error_message=None)
+        conn.close()
+        return True, f"✅ Refreshed — {rows_written} rows written at {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}"
+    except Exception as db_err:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database write error: {db_err}"
+
+
 def main():
     conn, error_msg = load_data()
 
@@ -70,8 +147,20 @@ def main():
     stats = get_pipeline_statistics(conn)
     latest_df = get_latest_prices(conn)
 
-    # 1. Header & Freshness Status
-    render_header(last_pull_time)
+    # 1. Header & Freshness Status + Refresh Data Button
+    header_col, btn_col = st.columns([5, 1])
+    with header_col:
+        render_header(last_pull_time)
+    with btn_col:
+        st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Refresh Data", key="refresh_data_btn", use_container_width=True):
+            with st.spinner("Pulling fresh data from CoinGecko..."):
+                success, message = refresh_data_from_ui()
+            if success:
+                st.toast(message, icon="✅")
+                st.rerun()
+            else:
+                st.toast(message, icon="❌")
 
     if latest_df.empty:
         st.info("ℹ️ NO MARKET DATA AVAILABLE — Ingestion pipeline has not been executed yet.")
