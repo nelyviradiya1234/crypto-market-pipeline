@@ -52,10 +52,10 @@ flowchart TD
     I -->|Health Metrics| J
 ```
 
-> ⚠️ **Key Architecture Decision**: The Streamlit presentation layer **never queries CoinGecko directly**. It queries only the PostgreSQL database. This ensures:
-> 1. **Zero API rate-limit risk** from concurrent dashboard visitors.
-> 2. **Complete immunity to API outages**: If CoinGecko experiences downtime, the dashboard continues to function flawlessly using historical snapshots.
-> 3. **Auditability & Observability**: Every execution outcome (success, rate limit, validation failure, DB error) is persisted in `pipeline_log`.
+> ⚠️ **Key Architecture Decision**: The Streamlit presentation layer reads primarily from PostgreSQL and **never queries CoinGecko on initial load or standard dashboard navigation**. An optional manual **↻ Refresh** button provides an on-demand exception, calling CoinGecko directly for instant updates — providing immediate user convenience while sharing API rate-limit exposure across visitors. This design guarantees:
+> 1. **Zero API overhead on page load**: Visitors browsing historical trends and market pulse query only PostgreSQL.
+> 2. **Dashboard resilience to API outages**: If CoinGecko experiences downtime, existing views and charts continue to function flawlessly using historical snapshots.
+> 3. **Auditability & Observability**: Execution outcomes (success, rate limits, validation errors, DB failures) from both scheduled jobs and manual refreshes are persisted in `pipeline_log`.
 
 ---
 

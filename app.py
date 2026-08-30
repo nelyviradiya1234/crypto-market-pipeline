@@ -1,7 +1,9 @@
 """Cryptocurrency Market Intelligence Dashboard.
 
-IMPORTANT ARCHITECTURAL RULE:
-This presentation layer reads exclusively from PostgreSQL. It NEVER calls CoinGecko directly.
+ARCHITECTURAL MODEL:
+The dashboard reads primarily from PostgreSQL on page load and standard dashboard navigation.
+An optional manual '↻ Refresh' button provides an on-demand exception, calling CoinGecko directly
+for an instant update — providing immediate convenience while sharing rate-limit exposure across visitors.
 """
 
 import time
@@ -127,6 +129,10 @@ def refresh_data_from_ui():
     except Exception as db_err:
         if conn:
             conn.rollback()
+            try:
+                log_pipeline_run(conn, status="db_error", rows_written=0, error_message=str(db_err))
+            except Exception:
+                pass
             conn.close()
         return False, f"Database write error: {db_err}"
 
