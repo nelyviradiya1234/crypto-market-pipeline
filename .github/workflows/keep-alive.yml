@@ -1,0 +1,21 @@
+name: Keep Streamlit Alive
+
+on:
+  schedule:
+    # Ping every 20 minutes to prevent Streamlit Cloud idle sleep
+    - cron: '*/20 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app/)
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "✅ App is alive"
+          else
+            echo "⚠️ App returned status $STATUS"
+          fi
