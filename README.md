@@ -3,7 +3,7 @@
 [![Live Demo](https://img.shields.io/badge/Streamlit-Live%20Dashboard-FF4B4B?style=for-the-badge&logo=streamlit)](https://crypto-market-pipeline-gaormfxzs2psuzehv2a7bs.streamlit.app/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech/)
-[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated_30m_Cron-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/nelyviradiya1234/crypto-market-pipeline/actions)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated_Cron-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/nelyviradiya1234/crypto-market-pipeline/actions)
 
 An enterprise-grade, production-style cryptocurrency market data pipeline and financial intelligence dashboard built with Python, CoinGecko API, PostgreSQL (Neon), GitHub Actions, and Streamlit.
 
@@ -21,8 +21,8 @@ flowchart TD
         A[CoinGecko Market API]
     end
 
-    subgraph Scheduled Automation
-        B[GitHub Actions<br/>Cron: */30 * * * *]
+    subgraph Trigger Engine
+        B[Scheduled Actions Cron<br/>& Manual UI Refresh]
     end
 
     subgraph Data Pipeline
@@ -42,7 +42,7 @@ flowchart TD
         J[Streamlit Dashboard<br/>app.py]
     end
 
-    B -->|Triggers every 30m| C
+    B -->|Automated & On-Demand Pulls| C
     A -->|HTTPS /coins/markets| C
     C --> D
     D --> E
@@ -65,13 +65,13 @@ flowchart TD
   - **Absolute Price (USD)**: Shows actual USD prices ($77,920 BTC vs $0.20 ADA).
   - **Indexed Relative Performance (Base = 100)**: Normalizes initial prices to 100, allowing direct percentage return comparison across assets with radically different price scales.
 - **Centralized Coin Metadata**: Professional display names (`BTC — Bitcoin`, `ETH — Ethereum`, `SOL — Solana`, `BNB — Binance Coin`, `XRP — Ripple`, `ADA — Cardano`, `DOGE — Dogecoin`, `DOT — Polkadot`).
-- **Automated 30-Minute Ingestion**: Periodically pulls market metrics for top cryptocurrencies via GitHub Actions.
+- **Automated & On-Demand Data Ingestion**: Ingests market metrics automatically via GitHub Actions, with a manual **↻ Refresh** button directly in the dashboard UI.
 - **24/7 Keep-Alive Automation**: Includes automated HTTP keep-alive ping to ensure Streamlit Cloud never hibernates or stops.
 - **Resilient API Client**: Handles HTTP status codes (200, 429, 400-404, 500-504) and transient errors using **exponential backoff retries** (5s, 15s, 45s).
 - **Strict Data Validation**: Validates response structure, presence of critical fields, numeric price bounds, and complete batch arrival before database insertion.
 - **Transactional Atomicity**: All snapshots within an ingestion run are written in a single database transaction (`BEGIN...COMMIT`), preventing partial batch corruption.
 - **Operational Observability**: Tracks execution metrics, total runs, success rate %, and detailed error messages in `pipeline_log`.
-- **Data Freshness Monitoring**: Real-time freshness badge on the dashboard (`● LIVE · <1M AGO`) with automated delay warnings if data is > 45 minutes old.
+- **Data Freshness Monitoring**: Real-time freshness badge on the dashboard (`LIVE · <1M AGO`) with automated delay warnings if data is delayed.
 - **Editorial Financial UI**: Customized light-mode styling system with high-contrast BaseWeb selectboxes, clean multiselect chips, and hidden modebars.
 
 ---
@@ -85,7 +85,7 @@ flowchart TD
 | **Database** | PostgreSQL / Neon | Transactional storage for snapshots & logs |
 | **DB Driver** | `psycopg2-binary` | PostgreSQL connection driver |
 | **Visualization** | Streamlit, Plotly, pandas | Interactive analytics web application |
-| **Automation** | GitHub Actions | Scheduled workflow runner (30-min cron) |
+| **Automation** | GitHub Actions | Scheduled workflow runner & manual UI refresh |
 | **Testing** | `pytest` | Unit test suite with API mocking |
 
 ---
@@ -180,7 +180,7 @@ python pull_data.py
 ```
 
 ### Option B: Generate Synthetic Historical Demo Data
-For development or demonstrating the dashboard with 7 days of realistic 30-minute history:
+For development or demonstrating the dashboard with 7 days of realistic history:
 
 ```bash
 python generate_sample_data.py
@@ -203,9 +203,12 @@ pytest tests/ -v
 
 ---
 
-## ⚙️ Scheduled Automation with GitHub Actions
+## ⚙️ Scheduled Automation & Ingestion Behavior
 
-The workflow file `.github/workflows/pull.yml` automates snapshot collection every 30 minutes.
+The workflow file `.github/workflows/pull.yml` automates snapshot collection via GitHub Actions.
+
+> 📝 **Note on Ingestion Timing & GitHub Actions Free Tier**:
+> Scheduled every 30 minutes via GitHub Actions cron. Note: GitHub Actions does not guarantee exact scheduled-run timing on the free tier — actual intervals can range from ~30 min to several hours depending on platform load, a known constraint of GitHub's free scheduler rather than the pipeline itself. To complement automated cron execution, users can trigger an instant live refresh at any time using the **↻ Refresh** button directly on the dashboard UI.
 
 ### Setting Up GitHub Secrets
 1. Push your repository to GitHub.

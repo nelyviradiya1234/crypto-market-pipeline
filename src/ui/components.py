@@ -226,6 +226,6 @@ def render_footer():
     st.markdown("""
     <div class="editorial-footer">
         <div>COIN DATA PROVIDED BY COINGECKO API</div>
-        <div>AUTOMATED INGESTION · SCHEDULED EVERY 30 MIN</div>
+        <div>AUTOMATED CRON INGESTION & ON-DEMAND UI REFRESH</div>
     </div>
     """, unsafe_allow_html=True)
