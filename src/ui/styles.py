@@ -285,17 +285,22 @@ EDITORIAL_CSS = """
         background-color: #FFFFFF !important;
         color: #0F172A !important;
         border: 1px solid #CBD5E1 !important;
-        border-radius: 6px !important;
+        border-radius: 9999px !important;
         font-weight: 600 !important;
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 0.03em !important;
         padding: 0.35rem 0.85rem !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
         transition: all 0.15s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     .stButton > button:hover {
         border-color: #0F172A !important;
-        background-color: #F8FAFC !important;
+        background-color: #F1F5F9 !important;
+        color: #0F172A !important;
     }
 
     /* DataFrame Table Styling */

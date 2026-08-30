@@ -146,19 +146,19 @@ def main():
     stats = get_pipeline_statistics(conn)
     latest_df = get_latest_prices(conn)
 
-    # 1. Header — Title, Freshness Pill, and Refresh Button on one row
+    # 1. Header — Title, Freshness Pill, and Refresh Button on one clean row
     now_utc = datetime.now(timezone.utc)
     if last_pull_time:
         lp = last_pull_time.replace(tzinfo=timezone.utc) if last_pull_time.tzinfo is None else last_pull_time
         diff_minutes = int((now_utc - lp).total_seconds() / 60)
         is_stale = diff_minutes > STALE_THRESHOLD_MINUTES
         pill_class = "stale" if is_stale else "live"
-        status_text = f"● DATA DELAYED · {diff_minutes}M AGO" if is_stale else f"● LIVE · {diff_minutes}M AGO"
+        status_text = f"DATA DELAYED · {diff_minutes}M AGO" if is_stale else f"LIVE · {diff_minutes}M AGO"
     else:
         pill_class = "error"
-        status_text = "● PIPELINE ISSUE"
+        status_text = "PIPELINE ISSUE"
 
-    title_col, pill_col, btn_col = st.columns([4, 2, 1.2])
+    title_col, action_col = st.columns([2.2, 1.8])
 
     with title_col:
         st.markdown("""
@@ -171,25 +171,27 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    with pill_col:
-        st.markdown(f"""
-        <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 0.25rem;">
-            <span class="freshness-pill {pill_class}">
-                <span class="pulse-dot"></span> {status_text}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
+    with action_col:
+        pill_subcol, btn_subcol = st.columns([1.3, 1.0])
+        with pill_subcol:
+            st.markdown(f"""
+            <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 0.45rem;">
+                <span class="freshness-pill {pill_class}">
+                    <span class="pulse-dot"></span> {status_text}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
 
-    with btn_col:
-        st.markdown("<div style='margin-top: 0.15rem;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 Refresh", key="refresh_data_btn", use_container_width=True):
-            with st.spinner("Pulling fresh data from CoinGecko..."):
-                success, message = refresh_data_from_ui()
-            if success:
-                st.toast(message, icon="✅")
-                st.rerun()
-            else:
-                st.toast(message, icon="❌")
+        with btn_subcol:
+            st.markdown("<div style='margin-top: 0.35rem;'></div>", unsafe_allow_html=True)
+            if st.button("↻ Refresh", key="refresh_data_btn", use_container_width=True):
+                with st.spinner("Pulling fresh data from CoinGecko..."):
+                    success, message = refresh_data_from_ui()
+                if success:
+                    st.toast(message, icon="✅")
+                    st.rerun()
+                else:
+                    st.toast(message, icon="❌")
 
     # Header divider
     st.markdown("<div style='border-bottom: 1px solid #E2E8F0; margin-bottom: 1.75rem;'></div>", unsafe_allow_html=True)
