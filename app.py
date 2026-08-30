@@ -152,7 +152,7 @@ def main():
     with header_col:
         render_header(last_pull_time)
     with btn_col:
-        st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 3.2rem;'></div>", unsafe_allow_html=True)
         if st.button("🔄 Refresh Data", key="refresh_data_btn", use_container_width=True):
             with st.spinner("Pulling fresh data from CoinGecko..."):
                 success, message = refresh_data_from_ui()
