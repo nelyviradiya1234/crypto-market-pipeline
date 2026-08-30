@@ -184,7 +184,7 @@ def main():
 
         with btn_subcol:
             st.markdown("<div style='margin-top: 0.35rem;'></div>", unsafe_allow_html=True)
-            if st.button("↻ Refresh", key="refresh_data_btn", use_container_width=True):
+            if st.button("↻ Refresh Data", key="refresh_data_btn", use_container_width=True):
                 with st.spinner("Pulling fresh data from CoinGecko..."):
                     success, message = refresh_data_from_ui()
                 if success:
