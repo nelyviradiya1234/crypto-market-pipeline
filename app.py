@@ -175,7 +175,7 @@ def main():
         pill_subcol, btn_subcol = st.columns([1.3, 1.0])
         with pill_subcol:
             st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 0.45rem;">
+            <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 0.95rem;">
                 <span class="freshness-pill {pill_class}">
                     <span class="pulse-dot"></span> {status_text}
                 </span>
