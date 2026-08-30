@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 
-from src.config import get_display_name, COIN_IDS, MAX_RETRIES, RETRY_DELAYS
+from src.config import get_display_name, COIN_IDS, MAX_RETRIES, RETRY_DELAYS, STALE_THRESHOLD_MINUTES
 from src.database.connection import get_connection
 from src.database.queries import (
     get_latest_prices,
@@ -22,7 +22,6 @@ from src.database.queries import (
 )
 from src.ui.styles import apply_editorial_theme
 from src.ui.components import (
-    render_header,
     render_market_snapshot,
     render_market_pulse,
     render_pipeline_timeline,
@@ -147,13 +146,43 @@ def main():
     stats = get_pipeline_statistics(conn)
     latest_df = get_latest_prices(conn)
 
-    # 1. Header & Freshness Status + Refresh Data Button
-    header_col, btn_col = st.columns([5, 1])
-    with header_col:
-        render_header(last_pull_time)
+    # 1. Header — Title, Freshness Pill, and Refresh Button on one row
+    now_utc = datetime.now(timezone.utc)
+    if last_pull_time:
+        lp = last_pull_time.replace(tzinfo=timezone.utc) if last_pull_time.tzinfo is None else last_pull_time
+        diff_minutes = int((now_utc - lp).total_seconds() / 60)
+        is_stale = diff_minutes > STALE_THRESHOLD_MINUTES
+        pill_class = "stale" if is_stale else "live"
+        status_text = f"● DATA DELAYED · {diff_minutes}M AGO" if is_stale else f"● LIVE · {diff_minutes}M AGO"
+    else:
+        pill_class = "error"
+        status_text = "● PIPELINE ISSUE"
+
+    title_col, pill_col, btn_col = st.columns([4, 2, 1.2])
+
+    with title_col:
+        st.markdown("""
+        <div>
+            <div class="brand-title">
+                MARKET MONITOR
+                <span class="brand-title-badge">PRO</span>
+            </div>
+            <div class="brand-subtitle">Crypto market intelligence & pipeline health</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with pill_col:
+        st.markdown(f"""
+        <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 0.25rem;">
+            <span class="freshness-pill {pill_class}">
+                <span class="pulse-dot"></span> {status_text}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
     with btn_col:
-        st.markdown("<div style='margin-top: 3.2rem;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 Refresh Data", key="refresh_data_btn", use_container_width=True):
+        st.markdown("<div style='margin-top: 0.15rem;'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Refresh", key="refresh_data_btn", use_container_width=True):
             with st.spinner("Pulling fresh data from CoinGecko..."):
                 success, message = refresh_data_from_ui()
             if success:
@@ -161,6 +190,9 @@ def main():
                 st.rerun()
             else:
                 st.toast(message, icon="❌")
+
+    # Header divider
+    st.markdown("<div style='border-bottom: 1px solid #E2E8F0; margin-bottom: 1.75rem;'></div>", unsafe_allow_html=True)
 
     if latest_df.empty:
         st.info("ℹ️ NO MARKET DATA AVAILABLE — Ingestion pipeline has not been executed yet.")
